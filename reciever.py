@@ -5,9 +5,18 @@ from cryptography.hazmat.primitives import serialization, hashes
 import requests
 import time
 import base64
+import os
 
 
 after = 0
+if os.path.isfile('private_key.pem') and os.path.isfile('public_key.pem'):
+    # read keys from files
+    with open("private_key.pem", "rb") as key_file:
+        private_key = serialization.load_pem_private_key(
+            key_file.read(),
+            password=None,
+            backend=default_backend()
+        )
 
 
 def get_message(after):
@@ -19,14 +28,7 @@ def get_message(after):
 
 def decrypt_msg(encrypted):
     encrypted = base64.b64decode(encrypted)
-
-    with open("private_key.pem", "rb") as key_file:
-        private_key = serialization.load_pem_private_key(
-            key_file.read(),
-            password=None,
-            backend=default_backend()
-        )
-
+    # todo so far assume that key exists
     original_message = private_key.decrypt(
         encrypted,
         padding.OAEP(
@@ -47,7 +49,6 @@ def print_message(messages):
             print(time_mes, ":\t", message["username"], ":\t", message_text)
         except ValueError:
             print("Key was changed, message cannot be shown")
-
 
 
 while True:

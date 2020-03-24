@@ -19,7 +19,9 @@ def status():
     data = {
         "status": True,
         "name": "ChikChikMessage",
-        "time": datetime.now()
+        "time": datetime.now(),
+        "number of users": len(users),
+        "number of messages": len(messages)
     }
     return data
 
