@@ -30,6 +30,7 @@ def status():
 def send():
     username = request.json["username"]
     password = request.json["password"]
+    to_whom = request.json["to_whom"]
 
     if username in users:
         if password != users[username]:
@@ -44,7 +45,8 @@ def send():
     message = {
         "username": username,
         "text": text,
-        "time": current_time
+        "time": current_time,
+        "to_whom": to_whom
     }
     messages.append(message)
 

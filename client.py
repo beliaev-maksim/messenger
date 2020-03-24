@@ -5,43 +5,63 @@ from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.asymmetric import rsa, padding
 from cryptography.hazmat.primitives import serialization, hashes
 
-
+# todo now if you write to all we do not encrypt
 class EncryptedClient():
     def __init__(self):
-        self.username = input("your username:\t")
-        self.password = input("your password:\t")
+        self.username = self.password = None
 
-        if os.path.isfile('private_key.pem') and os.path.isfile('public_key.pem'):
-            # read keys from files
-            with open("private_key.pem", "rb") as key_file:
-                self.private_key = serialization.load_pem_private_key(
-                    key_file.read(),
-                    password=None,
-                    backend=default_backend()
-                )
-            with open("public_key.pem", "rb") as key_file:
-                self.public_key = serialization.load_pem_public_key(
-                    key_file.read(),
-                    backend=default_backend()
-                )
+        while not self.username:
+            self.username = input("your username:\t")
 
-        else:
+        while not self.password:
+            self.password = input("your password:\t")
+
+        self.to_whom = input("Whom would you like to write? [All]:\t").lower()
+
+        if not self.to_whom:
+            self.to_whom = "all"
+
+        my_private_key_file = f"private_key_{self.username}.pem"
+        my_public_key_file = f"public_key_{self.username}.pem"
+
+        friend_private_key_file = f"private_key_{self.to_whom}.pem"
+        friend_public_key_file = f"public_key_{self.to_whom}.pem"
+
+        if self.to_whom != "all":
+            if os.path.isfile(friend_private_key_file) and os.path.isfile(friend_public_key_file):
+                # read keys from files
+                with open(friend_private_key_file, "rb") as key_file:
+                    self.private_key = serialization.load_pem_private_key(
+                        key_file.read(),
+                        password=None,
+                        backend=default_backend()
+                    )
+                with open(friend_public_key_file, "rb") as key_file:
+                    self.public_key = serialization.load_pem_public_key(
+                        key_file.read(),
+                        backend=default_backend()
+                    )
+            else:
+                print("Such user does not exist")
+                return
+
+        if not os.path.isfile(my_private_key_file) and not os.path.isfile(my_public_key_file):
             # create new keys and write them to the file
-            self.private_key = rsa.generate_private_key(
+            self.my_private_key = rsa.generate_private_key(
                 public_exponent=65537,
                 key_size=2048,
                 backend=default_backend()
             )
-            self.public_key = self.private_key.public_key()
+            self.my_public_key = self.my_private_key.public_key()
 
             # write private key to the file
-            pem = self.private_key.private_bytes(
+            pem = self.my_private_key.private_bytes(
                 encoding=serialization.Encoding.PEM,
                 format=serialization.PrivateFormat.PKCS8,
                 encryption_algorithm=serialization.NoEncryption()
             )
 
-            with open('private_key.pem', 'wb') as f:
+            with open(my_private_key_file, 'wb') as f:
                 f.write(pem)
 
             # write public key to the file
@@ -50,12 +70,17 @@ class EncryptedClient():
                 format=serialization.PublicFormat.SubjectPublicKeyInfo
             )
 
-            with open('public_key.pem', 'wb') as f:
+            with open(my_public_key_file, 'wb') as f:
                 f.write(pem)
 
     def send_message(self, text):
-        encrypted_text = self.encrypt_msg(text)
+        if self.to_whom.lower() == "all":
+            encrypted_text = text
+        else:
+            encrypted_text = self.encrypt_msg(text)
+
         message = {"username": self.username,
+                   "to_whom": self.to_whom,
                    "password": self.password,
                    "text": encrypted_text}
         response = requests.post("http://127.0.0.1:5000/send", json=message)

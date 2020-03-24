@@ -9,14 +9,22 @@ import os
 
 
 after = 0
-if os.path.isfile('private_key.pem') and os.path.isfile('public_key.pem'):
+username = None
+
+while not username:
+    username = input("your username:\t")
+
+private_key_file = f"private_key_{username}.pem"
+if os.path.isfile(private_key_file):
     # read keys from files
-    with open("private_key.pem", "rb") as key_file:
+    with open(private_key_file, "rb") as key_file:
         private_key = serialization.load_pem_private_key(
             key_file.read(),
             password=None,
             backend=default_backend()
         )
+else:
+    print("Such user does not exist. Run client.py for that user first")
 
 
 def get_message(after):
@@ -43,9 +51,16 @@ def decrypt_msg(encrypted):
 def print_message(messages):
 
     for message in messages:
+        if message["to_whom"].lower() not in ["all", username.lower()]:
+            continue
+
         time_mes = datetime.fromtimestamp(message["time"]).strftime("%D %H:%M")
         try:
-            message_text = decrypt_msg(message["text"])
+            if message["to_whom"].lower() == "all":
+                message_text = message["text"]
+            else:
+                message_text = decrypt_msg(message["text"])
+
             print(time_mes, ":\t", message["username"], ":\t", message_text)
         except ValueError:
             print("Key was changed, message cannot be shown")
